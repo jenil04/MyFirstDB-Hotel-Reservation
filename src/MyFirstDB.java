@@ -53,7 +53,7 @@ public class MyFirstDB {
 	private final String userName = "root";
 
 	/** The password for the MySQL account (or empty for anonymous) */
-	private final String password = "password123";
+	private final String password = "7229";
 
 	/** The name of the computer running MySQL */
 	private final String serverName = "localhost";
@@ -333,4 +333,7 @@ public class MyFirstDB {
 		return s != null && s.matches("[-+]?\\d*\\.?\\d+");
 	}
 
+	public Connection getConn() {
+		return conn;
+	}
 }
