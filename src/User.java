@@ -1,15 +1,24 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Collections;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
 
 public class User extends JFrame{
@@ -80,24 +89,83 @@ public class User extends JFrame{
 		this.checkRoomAvail = new JButton("Check Availability");
 		this.checkRoomAvail.addActionListener(new ActionListener() {
 			
+			JPanel checkRoomAvailPanel = null;
+			JTextField checkOut = null;
+			JTextField checkIn = null;
+			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				JPanel checkRoomAvailPanel = new JPanel();
-				checkRoomAvailPanel.setLayout(null);
+				checkRoomAvailPanel = new JPanel();
+				checkRoomAvailPanel.setLayout(new BorderLayout());
 				
-				JTextField userName = new JTextField();
-				userName.setBounds(188, 50, 100, 20);
-				userName.setColumns(10);
+				JPanel tempPanel = new JPanel();
+				checkIn = new JTextField();
+				checkIn.setColumns(10);
+				JLabel checkInLabel = new JLabel("Check In: (yyyy-mm-dd)");
 				
-				JLabel userNameLabel = new JLabel("Check In:");
-				userNameLabel.setBounds(70, 50, 85, 15);
-				checkRoomAvailPanel.add(userName);
-				checkRoomAvailPanel.add(userNameLabel);
+				checkOut = new JTextField();
+				checkOut.setColumns(10);
+				JLabel checkOutLabel = new JLabel("Check Out: (yyyy-mm-dd)");
 				
+				JButton checkButton = new JButton("Check Availability");
+				checkButton.addActionListener(executeCheckAvailability());
+				tempPanel.add(checkInLabel);
+				tempPanel.add(checkIn);
+				tempPanel.add(checkOutLabel);
+				tempPanel.add(checkOut); 
+				tempPanel.add(checkButton);
+				checkRoomAvailPanel.add(tempPanel, BorderLayout.NORTH);
 				
 				userPanel.add(checkRoomAvailPanel, BorderLayout.CENTER);
 				userPanel.revalidate();
+			}
+
+			private ActionListener executeCheckAvailability() {
+				// TODO Auto-generated method stub
+				return new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Fix the query. May be add an outer join instead with a where clause. Capacity needs to fetched from user profile. 
+						JPanel tempPanel = new JPanel();
+						if (checkIn.equals("") || checkOut.equals("")) {
+							JOptionPane.showMessageDialog(null, "Please fill in all the Fields", "Error", JOptionPane.ERROR_MESSAGE);
+						} else {
+							try {
+								String query = "SELECT * "
+										+ "FROM Room NATURAL JOIN RoomType "
+										+ "WHERE room_id NOT IN "
+											+ "(SELECT room_id "
+											+ "FROM Reservation "
+											+ "WHERE (check_in BETWEEN '" + checkIn.getText() + "' AND '"
+													+ checkOut.getText() + "') OR "
+													+ "(check_out BETWEEN '" + checkIn.getText() + "' AND '"
+													+ checkOut.getText() + "'))"
+											+ " AND status = true and capacity >= 5;";
+								
+								Statement stmt = connection.createStatement();
+								ResultSet rs = stmt.executeQuery(query);
+								String displayInformation = String.format("|%-20s|%-20s|%-20s|%-20s|\n","Room ID", "Room Type", "Price", "Capacity");
+								displayInformation += new String(new char[displayInformation.length()]).replace("\0", "_") + "\n";
+								while (rs.next()) {
+									displayInformation += String.format("|%-20d|%-20s|%-20d|%-20d|\n",
+																			rs.getInt("room_id"), 
+																			rs.getString("type_of_room"),
+																			rs.getInt("price"),
+																			rs.getInt("capacity"));
+								}
+								System.out.println(displayInformation);
+								JTextPane informationPane = new JTextPane();
+								informationPane.setText(displayInformation);
+								tempPanel.add(informationPane);
+								stmt.close();
+							} catch (Exception exp){
+								JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+							}
+						}
+						checkRoomAvailPanel.add(tempPanel, BorderLayout.CENTER);
+						checkRoomAvailPanel.revalidate();
+					}
+				};
 			}
 		});
 	}

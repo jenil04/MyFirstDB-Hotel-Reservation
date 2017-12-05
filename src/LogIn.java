@@ -87,7 +87,7 @@ public class LogIn extends JFrame {
 		try {
 			String query = "Select *  from " + this.typeOfLogIn
 							+ " Where userName = '" + this.userName.getText()
-								+ "' and password = '" + this.password.getText() + "';";
+							+ "' and password = '" + this.password.getText() + "';";
 			
 			Statement stmt = this.connection.createStatement();
 			ResultSet rs = stmt.executeQuery(query);
