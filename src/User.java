@@ -1,6 +1,7 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,13 +16,20 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
 public class User extends JFrame{
+	private int guestId;
+	private String fname;
+	private String lname;
+	private int numOfGuests;
+	
 	private JPanel userPanel;
 	private JButton bookRoom;
 	private JButton cancelReservation;
@@ -32,7 +40,20 @@ public class User extends JFrame{
 	private JButton updateInfo;
 	private Connection connection;
 	
-	public User() {
+	// Remember information about a user.
+	public User(int guestId, String fname, String lname, int numOfGuests) {
+		this.guestId = guestId;
+		this.fname = fname;
+		this.lname = lname;
+		this.numOfGuests = numOfGuests;
+		this.setUpUserPanel();
+	}
+	
+	public JPanel getUserPanel() {
+		return userPanel;
+	}
+	
+	private void setUpUserPanel() {
 		this.connection = Application.app.getConn();
 		this.userPanel = new JPanel();
 		this.userPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -40,15 +61,16 @@ public class User extends JFrame{
 		this.userPanel.add(this.setUpLeftSidePanel(), BorderLayout.WEST);
 	}
 
-	public JPanel getUserPanel() {
-		return userPanel;
-	}
-	
 	private JPanel setUpLeftSidePanel() {
 		this.setUpButtonFunctionality();
 		
 		JPanel leftSidePanel = new JPanel();
-		leftSidePanel.setLayout(new GridLayout(7, 1, 0, 3));
+		leftSidePanel.setLayout(new GridLayout(8, 1, 0, 3));
+		
+		JLabel welcomeLabel = new JLabel("Welcome " + this.fname + " " + this.lname);
+		welcomeLabel.setFont(new Font("Verdana", Font.BOLD, 16));
+		
+		leftSidePanel.add(welcomeLabel);
 		leftSidePanel.add(this.checkRoomAvail);
 		leftSidePanel.add(this.bookRoom);
 		leftSidePanel.add(this.requestService);
@@ -140,8 +162,8 @@ public class User extends JFrame{
 													+ checkOut.getText() + "') OR "
 													+ "(check_out BETWEEN '" + checkIn.getText() + "' AND '"
 													+ checkOut.getText() + "'))"
-											+ " AND status = true and capacity >= 5;";
-								
+											+ " AND status = true and capacity >= " + numOfGuests + ";";
+
 								Statement stmt = connection.createStatement();
 								ResultSet rs = stmt.executeQuery(query);
 								String displayInformation = String.format("|%-20s|%-20s|%-20s|%-20s|\n","Room ID", "Room Type", "Price", "Capacity");
@@ -154,11 +176,13 @@ public class User extends JFrame{
 																			rs.getInt("capacity"));
 								}
 								System.out.println(displayInformation);
-								JTextPane informationPane = new JTextPane();
-								informationPane.setText(displayInformation);
+								JTextArea content = new JTextArea();
+								content.setText(displayInformation);
+								JScrollPane informationPane = new JScrollPane(content, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 								tempPanel.add(informationPane);
 								stmt.close();
 							} catch (Exception exp){
+								exp.printStackTrace();
 								JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 							}
 						}

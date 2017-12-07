@@ -85,7 +85,7 @@ public class LogIn extends JFrame {
 	
 	private void executeLogIn() {
 		try {
-			String query = "Select *  from " + this.typeOfLogIn
+			String query = "Select * from " + this.typeOfLogIn
 							+ " Where userName = '" + this.userName.getText()
 							+ "' and password = '" + this.password.getText() + "';";
 			
@@ -95,11 +95,19 @@ public class LogIn extends JFrame {
 				JOptionPane.showMessageDialog(null, "UserName and/or Password is incorrect", "Error", JOptionPane.ERROR_MESSAGE);
 			} else {
 				if (this.typeOfLogIn.equals("guests")) {
-					this.loadUserPanel();
+					this.loadUserPanel(rs.getInt("guest_Id"),
+										rs.getString("first_name"),
+										rs.getString("last_name"),
+										rs.getInt("num_of_guests"));
+					
 				} else if (this.typeOfLogIn.equals("manager")) {
-					this.loadManagerPanel();
+					this.loadManagerPanel(rs.getInt("manager_Id"),
+											rs.getString("first_name"),
+											rs.getString("last_name"));
 				} else {
-					this.loadStaffPanel();
+					this.loadStaffPanel(rs.getInt("staff_Id"),
+											rs.getString("first_name"),
+											rs.getString("last_name"));
 				}
 				stmt.close();
 			}
@@ -108,20 +116,20 @@ public class LogIn extends JFrame {
 		}
 	}
 	
-	private void loadUserPanel() {
-		User user = new User();
+	private void loadUserPanel(int guestId, String fname, String lname, int numOfGuests) {
+		User user = new User(guestId, fname, lname, numOfGuests);
 		Application.mainPanel.add(user.getUserPanel(), "userSession");
 		Application.cardLayout.show(Application.mainPanel, "userSession");
 	}
 	
-	private void loadManagerPanel() {
-		Manager manager = new Manager();
+	private void loadManagerPanel(int managerId, String fname, String lname) {
+		Manager manager = new Manager(managerId, fname, lname);
 		Application.mainPanel.add(manager.getManagerPanel(), "managerSession");
 		Application.cardLayout.show(Application.mainPanel, "managerSession");
 	} 
 	
-	private void loadStaffPanel() {
-		Staff staff = new Staff();
+	private void loadStaffPanel(int staffId, String fname, String lname) {
+		Staff staff = new Staff(staffId, fname, lname);
 		Application.mainPanel.add(staff.getStaffPanel(), "staffSession");
 		Application.cardLayout.show(Application.mainPanel, "staffSession");
 	}

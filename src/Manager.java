@@ -1,4 +1,5 @@
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,6 +12,10 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 public class Manager {
+	private int managerId;
+	private String fname;
+	private String lname;
+	
 	private Connection connection;
 	private JPanel managerPanel;
 	private JButton addStaff;
@@ -20,23 +25,35 @@ public class Manager {
 	private JButton checkReport;
 	private JButton addRoom;
 	
-	public Manager() {
-		this.connection = Application.app.getConn();
-		this.managerPanel = new JPanel();
-		this.managerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-		this.managerPanel.setLayout(new BorderLayout());
-		this.managerPanel.add(this.setUpLeftSidePanel(), BorderLayout.WEST);
+	public Manager(int managerId, String fname, String lname) {
+		this.managerId = managerId;
+		this.fname = fname;
+		this.lname = lname;
+		this.setUpManagerPanel();
 	}
 
 	public JPanel getManagerPanel() {
 		return managerPanel;
 	}
 	
+	private void setUpManagerPanel() {
+		this.connection = Application.app.getConn();
+		this.managerPanel = new JPanel();
+		this.managerPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		this.managerPanel.setLayout(new BorderLayout());
+		this.managerPanel.add(this.setUpLeftSidePanel(), BorderLayout.WEST);
+	}
+	
 	private JPanel setUpLeftSidePanel() {
 		this.setUpButtonFunctionality();
 		
 		JPanel leftSidePanel = new JPanel();
-		leftSidePanel.setLayout(new GridLayout(6, 1, 0, 3));
+		leftSidePanel.setLayout(new GridLayout(7, 1, 0, 3));
+		
+		JLabel welcomeLabel = new JLabel("Welcome " + this.fname + " " + this.lname);
+		welcomeLabel.setFont(new Font("Verdana", Font.BOLD, 16));
+		
+		leftSidePanel.add(welcomeLabel);
 		leftSidePanel.add(this.addStaff);
 		leftSidePanel.add(this.removeStaff);
 		leftSidePanel.add(this.checkPopularRooms);

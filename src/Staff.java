@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
@@ -11,22 +12,37 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 public class Staff {
+	private int staffId;
+	private String fname;
+	private String lname;
+	
 	private Connection connection;
 	private JPanel staffPanel;
 	private JButton cleanRooms;
 	private JButton issuePayment;
 	
-	public Staff() {
-		this.connection = Application.app.getConn();
-		
-		this.staffPanel = new JPanel();
-		this.staffPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-		this.staffPanel.setLayout(new BorderLayout());
-		this.staffPanel.add(this.setUpButtonPanel(), BorderLayout.SOUTH);
+	public Staff(int staffId, String fname, String lname) {
+		this.staffId = staffId;
+		this.fname = fname;
+		this.lname = lname;
+		this.setUpStaffPanel();
 	}
 
 	public JPanel getStaffPanel() {
 		return staffPanel;
+	}
+	
+	private void setUpStaffPanel() {
+		this.connection = Application.app.getConn();
+		this.staffPanel = new JPanel();
+		this.staffPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		this.staffPanel.setLayout(new BorderLayout());
+		
+		JLabel welcomeLabel = new JLabel("Welcome " + this.fname + " " + this.lname);
+		welcomeLabel.setFont(new Font("Verdana", Font.BOLD, 16));
+		
+		this.staffPanel.add(welcomeLabel, BorderLayout.NORTH);
+		this.staffPanel.add(this.setUpButtonPanel(), BorderLayout.SOUTH);
 	}
 	
 	private JPanel setUpButtonPanel() {

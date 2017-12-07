@@ -2,6 +2,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
 
 import javax.swing.JButton;
@@ -179,14 +180,15 @@ public class SignUp extends JFrame {
 
 		try {
 			Statement stmt = this.connection.createStatement();
-			stmt.executeUpdate(query);
-			
+			stmt.executeUpdate(query, Statement.RETURN_GENERATED_KEYS);
+			ResultSet rs = stmt.getGeneratedKeys();
+			rs.next();
 			if (this.typeOfSignUp.equals("guests")) {
-				this.loadUserPanel();
+				this.loadUserPanel(rs.getInt(1));
 			} else if (this.typeOfSignUp.equals("manager")) {
-				this.loadManagerPanel();
+				this.loadManagerPanel(rs.getInt(1));
 			} else {
-				this.loadStaffPanel();
+				this.loadStaffPanel(rs.getInt(1));
 			}
 			stmt.close();
 		} catch (Exception e) {
@@ -198,20 +200,20 @@ public class SignUp extends JFrame {
 		}
 	}
 	
-	private void loadUserPanel() {
-		User user = new User();
+	private void loadUserPanel(int guestId) {
+		User user = new User(guestId, this.firstName.getText(), this.lastName.getText(), Integer.parseInt(this.numOfGuests.getText()));
 		Application.mainPanel.add(user.getUserPanel(), "userSession");
 		Application.cardLayout.show(Application.mainPanel, "userSession");
 	}
 	
-	private void loadManagerPanel() {
-		Manager manager = new Manager();
+	private void loadManagerPanel(int managerId) {
+		Manager manager = new Manager(managerId, this.firstName.getText(), this.lastName.getText());
 		Application.mainPanel.add(manager.getManagerPanel(), "managerSession");
 		Application.cardLayout.show(Application.mainPanel, "managerSession");
 	} 
 	
-	private void loadStaffPanel() {
-		Staff staff = new Staff();
+	private void loadStaffPanel(int staffId) {
+		Staff staff = new Staff(staffId, this.firstName.getText(), this.lastName.getText());
 		Application.mainPanel.add(staff.getStaffPanel(), "staffSession");
 		Application.cardLayout.show(Application.mainPanel, "staffSession");
 	}
