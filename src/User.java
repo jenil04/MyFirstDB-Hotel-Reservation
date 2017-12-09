@@ -1,10 +1,13 @@
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.nio.ByteOrder;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import javax.swing.JButton;
@@ -12,6 +15,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -93,14 +97,87 @@ public class User extends JFrame{
 		this.bookRoom = new JButton("Book a Room");
 		this.bookRoom.addActionListener(new ActionListener() {
 			
+			JPanel bookRoomPanel = null;
+			
+			JTextField checkOut = null;
+			JTextField checkIn = null;
+			JTextField roomID = null;
+			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				JPanel bookRoomPanel = new JPanel();
-				JLabel firstNameLabel = new JLabel("First Name");
-				bookRoomPanel.add(firstNameLabel);
+				clearCenterPanel();
+				
+				checkIn = new JTextField();
+				checkIn.setColumns(10);
+				checkOut = new JTextField();
+				checkOut.setColumns(10);
+				roomID = new JTextField();
+				roomID.setColumns(10);
+				
+				bookRoomPanel = setUpBookRoomPanel();
 				userPanel.add(bookRoomPanel, BorderLayout.CENTER);
 				userPanel.revalidate();
+			}
+			
+			public JPanel setUpBookRoomPanel() {
+				JPanel resultPanel = new JPanel(new GridLayout(7, 1));
+				
+				JPanel panel1 = new JPanel();
+				panel1.add(new JLabel("Check In"));
+				panel1.add(checkIn);
+				
+				JPanel panel2 = new JPanel();
+				panel2.add(new JLabel("Check Out"));
+				panel2.add(checkOut);
+				
+				JPanel panel3 = new JPanel();
+				panel3.add(new JLabel("Room ID"));
+				panel3.add(roomID);
+				
+				JPanel panel4 = new JPanel();
+				JButton bookMyRoom = new JButton("Book My Room");
+				bookMyRoom.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						if (isEmpty()) {
+							JOptionPane.showMessageDialog(null, "Please fill in all the Fields" ,"Error",JOptionPane.ERROR_MESSAGE);
+						} else {
+							String query = "INSERT into "
+											+ "Reservation (guest_id, room_id, check_in, check_out) "
+											+ "values (" + guestId + ", " + Integer.parseInt(roomID.getText()) + ", '" + checkIn.getText() + "', '" + checkOut.getText() + "');";
+							try {
+								System.out.println(query);
+								Statement stmt = connection.createStatement();
+								stmt.executeUpdate(query);
+								JOptionPane.showMessageDialog(null, "Room Has Been Booked!!! Please click on Check Reservation Info","Success",JOptionPane.INFORMATION_MESSAGE);
+								stmt.close();
+							} catch (Exception exp) {
+								if (exp.getMessage().contains("Duplicate entry")) {
+									JOptionPane.showMessageDialog(null,"Room has already been booked for these days!! Check Other Avaliable Rooms","Error",JOptionPane.ERROR_MESSAGE);
+								} else {
+									JOptionPane.showMessageDialog(null,exp.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+								}
+								
+							}
+						}
+					}
+				});
+				panel4.add(bookMyRoom);
+				
+				resultPanel.add(panel1);
+				resultPanel.add(panel2);
+				resultPanel.add(panel3);
+				resultPanel.add(panel4);
+				return resultPanel;
+			}
+			
+			public boolean isEmpty() {
+				return (checkIn.getText().equals("")) &&
+						(checkOut.getText().equals("")) &&
+						(roomID.getText().equals(""));
 			}
 		});
 	}
@@ -173,17 +250,16 @@ public class User extends JFrame{
 							model.addColumn("Capacity");
 							
 							try {
-								String query = "SELECT * "
-										+ "FROM Room NATURAL JOIN RoomType "
-										+ "WHERE room_id NOT IN "
-											+ "(SELECT room_id "
-											+ "FROM Reservation "
-											+ "WHERE (check_in BETWEEN '" + checkIn.getText() + "' AND '"
-													+ checkOut.getText() + "') OR "
-													+ "(check_out BETWEEN '" + checkIn.getText() + "' AND '"
-													+ checkOut.getText() + "'))"
-											+ " AND status = true and capacity >= " + numOfGuests + ";";
-
+								String query = "SELECT type_of_room, room.room_id, status, price, capacity "
+												+ "FROM ((Room natural join Roomtype) "
+													+ "left outer join "
+														+ "(SELECT room_id "
+														+ "FROM Reservation "
+														+ "WHERE (check_in BETWEEN '" + checkIn.getText() + "' AND '" + checkOut.getText() + "') OR "
+																+ "(check_out BETWEEN '" + checkIn.getText() + "' AND '" + checkOut.getText() + "')) ST "
+													+ "on (room.room_id = st.room_Id)) "
+												+ "WHERE st.room_id is null and status = true and capacity >= " + numOfGuests + ";";
+								
 								Statement stmt = connection.createStatement();
 								ResultSet rs = stmt.executeQuery(query);
 								int i = 0;
@@ -213,11 +289,152 @@ public class User extends JFrame{
 	private void setUpRequestServiceButton() {
 		this.requestService = new JButton("Request Service");
 		this.requestService.addActionListener(new ActionListener() {
+			
+			JPanel requestServicePanel = null;
+			DefaultTableModel model = null;
+			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-	
+				clearCenterPanel();
+				requestServicePanel = new JPanel(new GridLayout(2, 1));
+				
+				requestServicePanel.add(setUpTopPanel());
+				requestServicePanel.add(setUpBottomPanel());
+				
+				userPanel.add(requestServicePanel, BorderLayout.CENTER);
+				userPanel.revalidate();
 			}
+			
+			private JPanel setUpTopPanel() {
+				JPanel top = new JPanel();
+				JTable table = new JTable();
+				table.setDefaultEditor(Object.class, null);
+				JScrollPane scrollPane = new JScrollPane();
+				scrollPane.setViewportView(table);
+				
+				model = (DefaultTableModel) table.getModel();
+				model.addColumn("Confirmation #");
+				model.addColumn("Room Number");
+				model.addColumn("Service Price Due");
+				model.addColumn("Check In");
+				model.addColumn("Check Out");
+				
+				try {
+					String query = "SELECT * "
+							+ "FROM  Reservation "
+							+ "Where Reservation.guest_id  = " + guestId
+							+ " AND Reservation.confirmation NOT IN "
+								+ "(SELECT confirmation "
+								+ "FROM Payment);";
+					
+					Statement stmt = connection.createStatement();
+					ResultSet rs = stmt.executeQuery(query);
+	
+					int i = 0;
+					while (rs.next()) {
+						model.addRow(new Object[0]);
+						model.setValueAt(rs.getInt("confirmation"), i, 0);
+						model.setValueAt(rs.getString("room_id"), i, 1);
+						model.setValueAt(rs.getString("service_price"), i, 2);
+						model.setValueAt(rs.getString("check_in"), i, 3);
+						model.setValueAt(rs.getString("check_out"), i, 4);
+						i++;
+					}
+					top.add(scrollPane);
+					stmt.close();
+				} catch (Exception exp) {
+					JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				}
+				return top;
+			}
+			
+			private JPanel setUpBottomPanel() {
+				JPanel bottom = new JPanel(new GridLayout(2, 1));
+				
+				JPanel radioButtonPanel = new JPanel();
+				JRadioButton wireless = new JRadioButton("Wireless Network: $30");
+				JRadioButton breakFast = new JRadioButton("In-room Breakfast: $25");
+				JRadioButton lunch = new JRadioButton("In-room Lunch: $25");
+				JRadioButton dinner = new JRadioButton("In-room Dinner: $25");
+				JRadioButton beverages = new JRadioButton("Drinks and Beverages: $40");
+				JRadioButton massage = new JRadioButton("Spa and Massage Services: $75");
+				
+				radioButtonPanel.add(wireless);
+				radioButtonPanel.add(breakFast);
+				radioButtonPanel.add(lunch);
+				radioButtonPanel.add(dinner);
+				radioButtonPanel.add(beverages);
+				radioButtonPanel.add(massage);
+				
+				JPanel submitPanel = new JPanel();
+				JTextField confirmNum = new JTextField();
+				confirmNum.setColumns(10);
+				submitPanel.add(new JLabel("Enter Confirmation # "));
+				submitPanel.add(confirmNum);
+				
+				JButton addService = new JButton("Add Services");
+				addService.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						String sumOfServices = "";
+						
+						if (wireless.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 1 union all ";
+						}
+						if (breakFast.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 2 union all ";
+						}
+						if (lunch.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 3 union all ";
+						}
+						if (dinner.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 4 union all ";
+						}
+						if (beverages.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 6 union all ";
+						}
+						if (massage.isSelected()) {
+							sumOfServices += "SELECT price FROM Service WHERE service_id = 5 union all ";
+						} 
+						if (sumOfServices.equals("")) {
+							JOptionPane.showMessageDialog(null, "Please select Services", "Error", JOptionPane.ERROR_MESSAGE);
+						} else if (confirmNum.getText().equals("")) {
+							JOptionPane.showMessageDialog(null, "Enter a confirmation number to add Services", "Error", JOptionPane.ERROR_MESSAGE);
+						} else {
+							sumOfServices = "(SELECT sum(price) "
+											+ "FROM ( "
+												+  sumOfServices.substring(0, sumOfServices.length()-11)
+												+ ") ST)";
+							
+							String query = "UPDATE Reservation SET"
+										+ " service_price = service_price +"
+										+ 	sumOfServices + " "
+										+ "WHERE guest_id = " + guestId
+											+ " and confirmation = "
+													+ Integer.parseInt(confirmNum.getText()) + ";";
+							try {
+								Statement stmt = connection.createStatement();
+								stmt.execute(query);
+								
+								requestServicePanel.remove(0);
+								requestServicePanel.add(setUpTopPanel(), 0);
+								requestServicePanel.revalidate();
+								
+							} catch (Exception exp) {
+								JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+							}
+							
+						}
+					}
+				});
+				submitPanel.add(addService);
+				bottom.add(radioButtonPanel);
+				bottom.add(submitPanel);
+				return bottom;
+			} 
 		});
 	}
 	
@@ -280,11 +497,94 @@ public class User extends JFrame{
 	private void setUpCancelReservationButton() {
 		this.cancelReservation = new JButton("Cancel Reservation");
 		this.cancelReservation.addActionListener(new ActionListener() {
+			JPanel cancelReservationPanel = null;
+			DefaultTableModel model = null;
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
+				clearCenterPanel();
+				cancelReservationPanel = new JPanel(new GridLayout(2, 1));
+				cancelReservationPanel.add(setUpTopOfPanel());
+				cancelReservationPanel.add(setUpBottomPanel());
 				
+				userPanel.add(cancelReservationPanel, BorderLayout.CENTER);
+				userPanel.revalidate();
+			}
+			
+			public JPanel setUpBottomPanel() {
+				JPanel bottomPanel = new JPanel();
+				JTextField confirmNum = new JTextField();
+				confirmNum.setColumns(10);
+				JButton deleteButton = new JButton("Cancel");
+				deleteButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						if (confirmNum.getText().equals("")) {
+							JOptionPane.showMessageDialog(null, "Please enter a Number", "Error", JOptionPane.ERROR_MESSAGE);
+						} else {
+							try {
+								String query = "DELETE FROM Reservation WHERE guest_id = " + guestId +" AND confirmation = " + Integer.parseInt(confirmNum.getText()) + ";";
+								Statement stmt = connection.createStatement();
+								stmt.execute(query);
+								cancelReservationPanel.remove(0);
+								cancelReservationPanel.add(setUpTopOfPanel(), 0);
+								cancelReservationPanel.revalidate();
+								stmt.close();
+							} catch (SQLException e1) {
+								JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+							}
+						}
+					}
+				});
+				bottomPanel.add(new JLabel("Enter a Confirmation: #"));
+				bottomPanel.add(confirmNum);
+				bottomPanel.add(deleteButton);
+				
+				return bottomPanel;
+			}
+			public JPanel setUpTopOfPanel() {
+				JPanel topPanel = new JPanel();
+				JTable table = new JTable();
+				table.setDefaultEditor(Object.class, null);
+				JScrollPane scrollPane = new JScrollPane();
+				scrollPane.setViewportView(table);
+				
+				model = (DefaultTableModel) table.getModel();
+				model.addColumn("Confirmation #");
+				model.addColumn("Room Number");
+				model.addColumn("Service Price Due");
+				model.addColumn("Check In");
+				model.addColumn("Check Out");
+				
+				try {
+					String query = "SELECT * "
+							+ "FROM  Reservation "
+							+ "Where Reservation.guest_id  = " + guestId
+							+ " AND Reservation.confirmation NOT IN "
+								+ "(SELECT confirmation "
+								+ "FROM Payment);";
+					
+					Statement stmt = connection.createStatement();
+					ResultSet rs = stmt.executeQuery(query);
+	
+					int i = 0;
+					while (rs.next()) {
+						model.addRow(new Object[0]);
+						model.setValueAt(rs.getInt("confirmation"), i, 0);
+						model.setValueAt(rs.getString("room_id"), i, 1);
+						model.setValueAt(rs.getString("service_price"), i, 2);
+						model.setValueAt(rs.getString("check_in"), i, 3);
+						model.setValueAt(rs.getString("check_out"), i, 4);
+						i++;
+					}
+					topPanel.add(scrollPane);
+					stmt.close();
+				} catch (Exception exp) {
+					JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				}
+				return topPanel;
 			}
 		});
 	}
@@ -292,12 +592,94 @@ public class User extends JFrame{
 	private void setUpPaymentButton() {
 		this.payment = new JButton("Make Payment");
 		this.payment.addActionListener(new ActionListener() {
+		
+			JPanel paymentPanel = null;
+			DefaultTableModel model = null;
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
+				clearCenterPanel();
 				
+				paymentPanel = new JPanel(new GridLayout(2, 1));
+				paymentPanel.add(setUpTopOfPanel());
+				paymentPanel.add(setUpBottomPanel());
+				
+				userPanel.add(paymentPanel, BorderLayout.CENTER);
+				userPanel.revalidate();
 			}
+			
+			public JPanel setUpBottomPanel() {
+				JPanel bottomPanel = new JPanel();
+				JTextField paymentId = new JTextField();
+				paymentId.setColumns(10);
+				JButton payButton = new JButton("Pay");
+				payButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						// TODO Auto-generated method stub
+						if (paymentId.getText().equals("")) {
+							JOptionPane.showMessageDialog(null, "Please enter Payment ID", "Error", JOptionPane.ERROR_MESSAGE);
+						} else {
+							try {
+								String query = "DELETE FROM Payment WHERE guest_id = " + guestId +" AND Payment_id = " + Integer.parseInt(paymentId.getText()) + ";";
+								Statement stmt = connection.createStatement();
+								stmt.execute(query);
+								paymentPanel.remove(0);
+								paymentPanel.add(setUpTopOfPanel(), 0);
+								paymentPanel.revalidate();
+								stmt.close();
+							} catch (SQLException e1) {
+								JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+							}
+						}
+					}
+				});
+				bottomPanel.add(new JLabel("Enter a Payment ID"));
+				bottomPanel.add(paymentId);
+				bottomPanel.add(payButton);
+				
+				return bottomPanel;
+			}
+			public JPanel setUpTopOfPanel() {
+				JPanel topPanel = new JPanel();
+				JTable table = new JTable();
+				table.setDefaultEditor(Object.class, null);
+				JScrollPane scrollPane = new JScrollPane();
+				scrollPane.setViewportView(table);
+				
+				model = (DefaultTableModel) table.getModel();
+				model.addColumn("Payment ID");
+				model.addColumn("Confirmation");
+				model.addColumn("Room Price");
+				model.addColumn("Service Price");
+				
+				try {
+					String query = "SELECT * "
+							+ "FROM  Payment "
+							+ "Where Payment.guest_id  = " + guestId + ";";
+					
+					Statement stmt = connection.createStatement();
+					ResultSet rs = stmt.executeQuery(query);
+	
+					int i = 0;
+					while (rs.next()) {
+						model.addRow(new Object[0]);
+						model.setValueAt(rs.getInt("Payment_id"), i, 0);
+						model.setValueAt(rs.getInt("confirmation"), i, 1);
+						model.setValueAt(rs.getInt("Room_price"), i, 2);
+						model.setValueAt(rs.getInt("Service_price"), i, 3);
+						i++;
+					}
+					topPanel.add(scrollPane);
+					stmt.close();
+				} catch (Exception exp) {
+					JOptionPane.showMessageDialog(null, exp.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				}
+				return topPanel;
+			}
+			
 		});
 	}
 	
@@ -390,7 +772,7 @@ public class User extends JFrame{
 								setUpWelcomeLabel((firstName.getText().equals("")) ? fname : firstName.getText(),
 													(lastName.getText().equals("")) ? lname : lastName.getText());
 								
-								JOptionPane.showMessageDialog(null, "Profile has been Updtaed","Success",JOptionPane.INFORMATION_MESSAGE);
+								JOptionPane.showMessageDialog(null, "Profile has been Updated","Success",JOptionPane.INFORMATION_MESSAGE);
 							} catch (Exception exp) {
 								JOptionPane.showMessageDialog(null,exp.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
 							}
