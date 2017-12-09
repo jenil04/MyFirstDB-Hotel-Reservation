@@ -1,12 +1,17 @@
+package HotelReservationSystem;
+
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -63,6 +68,16 @@ public class Staff {
 	
 	private void setUpCleanRoomButton() {
 		this.cleanRooms = new JButton("Clean Rooms");
+		String query = "UPDATE * Room " + " SET status = '"
+				+ true + " Where room_id = '" + 
+				"(Select room_id * from Reservation " + " Where userName = '" + "check_out < CURDATE()); ';";
+		
+		Statement stmt = this.connection.createStatement();
+		ResultSet rs = stmt.executeQuery(query);
+		
+		if (!rs.next()) {
+			JOptionPane.showMessageDialog(null, "Incorrect ID", "Error", JOptionPane.ERROR_MESSAGE);
+			
 		this.cleanRooms.addActionListener(new ActionListener() {
 			
 			@Override
