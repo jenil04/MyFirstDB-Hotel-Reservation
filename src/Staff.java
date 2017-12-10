@@ -100,7 +100,17 @@ public class Staff {
 	}
 	
 	private void setUpIssuePaymentButton() {
+		String query = "INSERT INTO " + "payment " + " "
+				+ "(Guest_id, confirmation, room_price, service_price) " + " SELECT guest_id, Confirmation, price, service_price " + 
+				"FROM ( Reservation natural join (Room natural join Roomtype) "+ "Where check_in <= curDate() "+ 3;
+		
 		this.issuePayment = new JButton("Issue Payments");
+		
+		Statement stmt = this.connection.createStatement();
+		ResultSet rs = stmt.executeQuery(query);
+		
+		if (!rs.next()) {
+			JOptionPane.showMessageDialog(null, "Incorrect payment method.", "Error", JOptionPane.ERROR_MESSAGE);
 		this.issuePayment.addActionListener(new ActionListener() {
 			
 			@Override
