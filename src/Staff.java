@@ -4,14 +4,12 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.Statement;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 public class Staff {
@@ -45,7 +43,7 @@ public class Staff {
 		welcomeLabel.setFont(new Font("Verdana", Font.BOLD, 16));
 		
 		this.staffPanel.add(welcomeLabel, BorderLayout.NORTH);
-		this.staffPanel.add(this.setUpButtonPanel(), BorderLayout.SOUTH);
+		this.staffPanel.add(this.setUpButtonPanel(), BorderLayout.CENTER);
 	}
 	
 	private JPanel setUpButtonPanel() {
@@ -66,65 +64,43 @@ public class Staff {
 	
 	private void setUpCleanRoomButton() {
 		this.cleanRooms = new JButton("Clean Rooms");
-		String query = "UPDATE * Room " + " SET status = '"
-				+ true + " Where room_id = '" + 
-				"(Select room_id * from Reservation " + " Where userName = '" + "check_out < CURDATE()); ';";
-		
-		Statement stmt = this.connection.createStatement();
-		ResultSet rs = stmt.executeQuery(query);
-		
-		if (!rs.next()) {
-			JOptionPane.showMessageDialog(null, "Incorrect ID", "Error", JOptionPane.ERROR_MESSAGE);
-			
 		this.cleanRooms.addActionListener(new ActionListener() {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				JPanel cleanRoomPanel = new JPanel();
-				cleanRoomPanel.setLayout(null);
+				String query = "UPDATE Room "
+						+ "SET status = true "
+						+ "WHERE room_id = (SELECT room_id FROM Reservation WHERE check_out < CURDATE());";
 				
-				JTextField test = new JTextField();
-				test.setBounds(188, 50, 100, 20);
-				test.setColumns(10);
-				
-				JLabel test1 = new JLabel("Tester:");
-				test1.setBounds(70, 50, 85, 15);
-				cleanRoomPanel.add(test);
-				cleanRoomPanel.add(test1);
-				
-				staffPanel.add(cleanRoomPanel, BorderLayout.CENTER);
-				staffPanel.revalidate();
+				try {
+					Statement stmt = connection.createStatement();
+					stmt.execute(query);
+					System.out.println(query);
+					JOptionPane.showMessageDialog(null, "Payments have been issued","Success",JOptionPane.INFORMATION_MESSAGE);
+				} catch (Exception exp) {
+					JOptionPane.showMessageDialog(null,exp.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 	}
 	
 	private void setUpIssuePaymentButton() {
-		String query = "INSERT INTO " + "payment " + " "
-				+ "(Guest_id, confirmation, room_price, service_price) " + " SELECT guest_id, Confirmation, price, service_price " + 
-				"FROM ( Reservation natural join (Room natural join Roomtype) "+ "Where check_in <= curDate() "+ 3;
-		
 		this.issuePayment = new JButton("Issue Payments");
-		
-		Statement stmt = this.connection.createStatement();
-		ResultSet rs = stmt.executeQuery(query);
-		
-		if (!rs.next()) {
-			JOptionPane.showMessageDialog(null, "Incorrect payment method.", "Error", JOptionPane.ERROR_MESSAGE);
 		this.issuePayment.addActionListener(new ActionListener() {
-			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				JPanel cleanRoomPanel = new JPanel();
-				cleanRoomPanel.setLayout(null);
-				
-				JLabel test1 = new JLabel("Tester:");
-				test1.setBounds(70, 50, 85, 15);
-				cleanRoomPanel.add(test1);
-				
-				staffPanel.add(cleanRoomPanel, BorderLayout.CENTER);
-				staffPanel.revalidate();
+				String query = "INSERT INTO " + "payment " + " "
+						+ "(Guest_id, confirmation, room_price, service_price) SELECT guest_id, Confirmation, price, service_price " + 
+						"FROM Reservation natural join (Room natural join Roomtype) Where check_in <= curDate() + 3 and Confirmation not in"
+						+ " (Select Confirmation from Payment);";
+				try {
+					Statement stmt = connection.createStatement();
+					stmt.execute(query);
+					System.out.println(query);
+					JOptionPane.showMessageDialog(null, "Payments have been issued","Success",JOptionPane.INFORMATION_MESSAGE);
+				} catch (Exception exp) {
+					JOptionPane.showMessageDialog(null,exp.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+				}
 			}
 		});
 	}
